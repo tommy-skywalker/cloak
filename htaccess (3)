@@ -1,0 +1,43 @@
+Options -Indexes
+RewriteEngine On
+
+# ── Block empty user agents ───────────────────────────────────────────────────
+RewriteCond %{HTTP_USER_AGENT} ^-?$
+RewriteRule .* - [F,L]
+
+# ── Block known bots & crawlers ───────────────────────────────────────────────
+RewriteCond %{HTTP_USER_AGENT} (ahrefs|semrush|moz|majestic|dotbot|rogerbot) [NC,OR]
+RewriteCond %{HTTP_USER_AGENT} (bot|crawl|spider|slurp|mediapartners) [NC,OR]
+RewriteCond %{HTTP_USER_AGENT} (facebookexternalhit|twitterbot|linkedinbot|whatsapp) [NC,OR]
+RewriteCond %{HTTP_USER_AGENT} (applebot|bingpreview|google-inspectiontool) [NC,OR]
+RewriteCond %{HTTP_USER_AGENT} (headlesschrome|phantomjs|selenium|puppeteer|playwright) [NC,OR]
+RewriteCond %{HTTP_USER_AGENT} (python-requests|python-urllib|curl|wget|libwww-perl) [NC,OR]
+RewriteCond %{HTTP_USER_AGENT} (go-http-client|java\/|okhttp|axios|scrapy|httpclient) [NC,OR]
+RewriteCond %{HTTP_USER_AGENT} (yandexbot|baiduspider|sogou|exabot|gigabot|ia_archiver) [NC,OR]
+RewriteCond %{HTTP_USER_AGENT} (mj12bot|petalbot|bytespider|gptbot|ccbot|claudebot) [NC,OR]
+RewriteCond %{HTTP_USER_AGENT} (cohere-ai|anthropic-ai|openai|perplexitybot|youbot) [NC]
+RewriteRule .* - [F,L]
+
+# ── Block datacenter IP ranges ────────────────────────────────────────────────
+# AWS
+RewriteCond %{REMOTE_ADDR} ^3\.(80|81|82|83|84|85|86|87|88|89|90|91|92|93|94|95|96)\. [OR]
+# Google Cloud
+RewriteCond %{REMOTE_ADDR} ^34\.(64|65|66|67|68|69|70|71|72|73|74|75|76|77|78|79|80|81|82|83|84|85|86|87|88|89|90|91|92|93|94|95|96|97|98|99|100|101|102)\. [OR]
+# DigitalOcean
+RewriteCond %{REMOTE_ADDR} ^(159\.65\.|165\.22\.|167\.99\.|174\.138\.|178\.62\.) [OR]
+# Microsoft Azure
+RewriteCond %{REMOTE_ADDR} ^(40\.(64|65|66|67|68|69|70|71|72|73|74|75|76|77|78|79|80|81|82|83|84|85|86|87|88|89|90)\.) [OR]
+# Hetzner
+RewriteCond %{REMOTE_ADDR} ^(116\.203\.|138\.201\.|144\.76\.|148\.251\.) [OR]
+# OVH
+RewriteCond %{REMOTE_ADDR} ^(51\.68\.|51\.75\.|51\.77\.|51\.89\.|54\.36\.|54\.38\.)
+RewriteRule .* - [F,L]
+
+# ── Block scanner paths ───────────────────────────────────────────────────────
+RewriteCond %{REQUEST_URI} (wp-admin|wp-login|xmlrpc|\.php|\.asp|\.env|\.git) [NC,OR]
+RewriteCond %{REQUEST_URI} (admin|login|config|backup|\.sql|\.bak|\.zip) [NC]
+RewriteRule .* - [F,L]
+
+# ── Force HTTPS ───────────────────────────────────────────────────────────────
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]

