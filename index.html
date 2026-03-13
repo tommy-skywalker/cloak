@@ -780,6 +780,14 @@ document.querySelectorAll('.filter-tab').forEach(btn => {
   });
 });
 
+function showFieldError(inp, msg) {
+  inp.style.borderColor = 'rgba(220,38,38,.55)';
+  const err = document.createElement('span');
+  err.textContent = msg;
+  err.style.cssText = 'display:block;font-size:.68rem;color:rgba(220,100,100,.9);margin-top:4px;';
+  inp.parentNode.appendChild(err);
+}
+
 // ── SHEETDB CONFIG ───────────────────────────────────────────────────────────
 const SHEETDB_URL = 'https://sheetdb.io/api/v1/u9lip7heaqf17'; // ← paste your SheetDB API URL here
 // ─────────────────────────────────────────────────────────────────────────────
@@ -790,25 +798,73 @@ async function submitLead(btn) {
 
   // Validate — all text inputs required
   let valid = true;
-  inputs.forEach(inp => {
-    if (!inp.value.trim()) {
-      inp.style.borderColor = 'rgba(220,38,38,.6)';
+  inputs.forEach((inp, i) => {
+    inp.style.borderColor = '';
+    inp.nextElementSibling?.remove(); // remove old error msg if any
+
+    const val = inp.value.trim();
+
+    if (!val) {
+      showFieldError(inp, 'This field is required');
       valid = false;
-    } else {
-      inp.style.borderColor = '';
+      return;
+    }
+
+    // Phone validation (index 2)
+    if (i === 2) {
+      // Strip spaces, dashes, brackets for checking
+      const stripped = val.replace(/[\s\-().+]/g, '');
+      // Must be digits only after stripping, 7–15 digits (E.164 range)
+      const digitsOnly = /^\d{7,15}$/.test(stripped);
+      // UK numbers: starts with 07, 447, +447, or 0044
+      const ukPattern = /^(\+?44|0044)?[\s.-]?7\d{9}$|^07\d{9}$/.test(val.replace(/\s/g,''));
+      // International: starts with + or 00 followed by country code
+      const intlPattern = /^(\+|00)\d{7,14}$/.test(stripped);
+
+      if (!digitsOnly || (!ukPattern && !intlPattern)) {
+        showFieldError(inp, 'Enter a valid phone number (e.g. 07911 123456 or +447911123456)');
+        valid = false;
+        return;
+      }
+    }
+
+    // Email validation (index 1)
+    if (i === 1) {
+      const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(val);
+      if (!emailOk) {
+        showFieldError(inp, 'Enter a valid email address');
+        valid = false;
+        return;
+      }
     }
   });
   if (!valid) return;
 
-  // Collect values
+  // Validate selects too
   const selects = fields.querySelectorAll('select');
+  let selectsValid = true;
+  selects.forEach(sel => {
+    sel.style.borderColor = '';
+    sel.nextElementSibling?.remove();
+    if (!sel.value) {
+      sel.style.borderColor = 'rgba(220,38,38,.55)';
+      const err = document.createElement('span');
+      err.textContent = 'Please select an option';
+      err.style.cssText = 'display:block;font-size:.68rem;color:rgba(220,100,100,.9);margin-top:4px;';
+      sel.parentNode.appendChild(err);
+      selectsValid = false;
+    }
+  });
+  if (!selectsValid) { btn.disabled = false; btn.textContent = 'Get Free Comparison →'; return; }
+
+  // Collect values
   const data = {
     Name:         inputs[0].value.trim(),
     Email:        inputs[1].value.trim(),
     Phone:        inputs[2].value.trim(),
     City:         inputs[3].value.trim(),
-    Amount:       selects[0].value || 'Not selected',
-    When:         selects[1].value || 'Not selected',
+    Amount:       selects[0].value,
+    When:         selects[1].value,
     'Submitted At': new Date().toLocaleString('en-GB', { timeZone: 'Europe/London' }),
   };
 
