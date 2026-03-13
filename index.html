@@ -5,6 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Meridian Finance — Compare Fixed‑Income Rates Up To 8%</title>
   <meta name="description" content="Compare term deposits and fixed‑income opportunities from established UK financial institutions. FSCS protection available on qualifying deposits up to £120,000.">
+
+  <!-- Meta Pixel Code -->
+  <script>
+  !function(f,b,e,v,n,t,s)
+  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+  n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];
+  s.parentNode.insertBefore(t,s)}(window, document,'script',
+  'https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', '1608974353705109');
+  fbq('track', 'PageView');
+  </script>
+  <noscript><img height="1" width="1" style="display:none"
+  src="https://www.facebook.com/tr?id=1608974353705109&ev=PageView&noscript=1"
+  /></noscript>
+  <!-- End Meta Pixel Code -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -178,6 +196,80 @@
       .rate-table thead th:nth-child(3),.rate-table td:nth-child(3),
       .rate-table thead th:nth-child(4),.rate-table td:nth-child(4){display:none}
     }
+
+    /* ── LEAD FORM ── */
+    .lead-form-wrap {
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(201,168,76,.22);
+      border-radius: 8px;
+      padding: 24px 26px 20px;
+      margin-top: 32px;
+      max-width: 480px;
+    }
+    .lead-form-title {
+      font-size: .72rem; font-weight: 600;
+      letter-spacing: .1em; text-transform: uppercase;
+      color: var(--gold2); margin-bottom: 16px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .lead-form-title::before {
+      content: ''; display: block;
+      width: 14px; height: 1px; background: var(--gold);
+    }
+    .lf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .lf-field { display: flex; flex-direction: column; gap: 5px; }
+    .lf-field.full { grid-column: span 2; }
+    .lf-field label {
+      font-size: .68rem; font-weight: 600;
+      letter-spacing: .07em; text-transform: uppercase;
+      color: rgba(255,255,255,.35);
+    }
+    .lf-field input, .lf-field select {
+      background: rgba(255,255,255,.07);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 4px;
+      padding: 10px 13px;
+      font-size: .85rem;
+      color: #fff;
+      font-family: var(--sans);
+      outline: none;
+      transition: border-color .2s;
+      width: 100%;
+      -webkit-appearance: none;
+    }
+    .lf-field input::placeholder { color: rgba(255,255,255,.18); }
+    .lf-field input:focus, .lf-field select:focus { border-color: rgba(201,168,76,.45); }
+    .lf-field select option { background: #1a3229; color: #fff; }
+    .lf-submit {
+      margin-top: 14px;
+      width: 100%;
+      background: var(--gold);
+      color: var(--forest);
+      border: none;
+      padding: 13px 20px;
+      border-radius: 4px;
+      font-family: var(--sans);
+      font-size: .82rem; font-weight: 600;
+      letter-spacing: .06em; text-transform: uppercase;
+      cursor: pointer;
+      transition: background .15s, transform .1s;
+    }
+    .lf-submit:hover { background: var(--gold2); transform: translateY(-1px); }
+    .lf-submit:active { transform: translateY(0); }
+    .lf-success {
+      display: none;
+      text-align: center;
+      padding: 20px 0 8px;
+      color: var(--green2);
+      font-size: .88rem;
+    }
+    .lf-success svg { display: block; margin: 0 auto 10px; }
+    .lf-disclaimer {
+      font-size: .68rem;
+      color: rgba(255,255,255,.2);
+      margin-top: 12px;
+      line-height: 1.5;
+    }
   </style>
 </head>
 <body>
@@ -227,7 +319,58 @@
         </a>
         <a href="#guides" class="btn-outline">Investment Guides</a>
       </div>
-      <div class="hero-trust fade-in d4">
+
+      <!-- LEAD FORM -->
+      <div class="lead-form-wrap fade-in d4">
+        <div class="lead-form-title">Get Your Free Rate Comparison</div>
+        <div class="lf-grid" id="lf-fields">
+          <div class="lf-field full">
+            <label>Full Name</label>
+            <input type="text" placeholder="" autocomplete="name">
+          </div>
+          <div class="lf-field full">
+            <label>Email Address</label>
+            <input type="email" placeholder="" autocomplete="email">
+          </div>
+          <div class="lf-field">
+            <label>Phone Number</label>
+            <input type="tel" placeholder="" autocomplete="tel">
+          </div>
+          <div class="lf-field">
+            <label>City</label>
+            <input type="text" placeholder="" autocomplete="address-level2">
+          </div>
+          <div class="lf-field">
+            <label>Investment Amount</label>
+            <select>
+              <option value="" disabled selected>Select range</option>
+              <option>Under £50,000</option>
+              <option>£50,000 – £100,000</option>
+              <option>£100,000 – £250,000</option>
+              <option>£250,000 – £500,000</option>
+              <option>£500,000+</option>
+            </select>
+          </div>
+          <div class="lf-field">
+            <label>When to Invest</label>
+            <select>
+              <option value="" disabled selected>Select timeframe</option>
+              <option>Immediately</option>
+              <option>Within 1 month</option>
+              <option>1–3 months</option>
+              <option>3–6 months</option>
+              <option>Just researching</option>
+            </select>
+          </div>
+        </div>
+        <button class="lf-submit" onclick="submitLead(this)">Get Free Comparison →</button>
+        <div class="lf-success" id="lf-success">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="14" r="13" stroke="#52b788" stroke-width="1.5"/><path d="M9 14l3.5 3.5L19 10" stroke="#52b788" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Thank you — a specialist will be in touch shortly.
+        </div>
+        <div class="lf-disclaimer">By submitting you agree to our privacy policy. Your data will not be shared with third parties without consent. FSCS protected deposits only.</div>
+      </div>
+      <div class="hero-trust fade-in d4" style="margin-top:24px">
         <div class="trust-item">
           <svg width="14" height="14" viewBox="0 0 20 20" fill="rgba(255,255,255,.5)"><path d="M10 1L3 5v6c0 4.4 3 8.4 7 9.3 4-1 7-4.9 7-9.3V5L10 1z"/></svg>
           FSCS Protected
@@ -462,7 +605,7 @@
     <h2>Rate Alerts — Free</h2>
     <p>Get notified when fixed-income rates move above your chosen threshold. No spam, unsubscribe anytime.</p>
     <div class="nl-form">
-      <input type="email" placeholder="your@email.com">
+      <input type="email" placeholder="">
       <button type="button">Set Rate Alert</button>
     </div>
   </div>
@@ -608,6 +751,36 @@ document.querySelectorAll('.filter-tab').forEach(btn => {
     btn.classList.add('active');
   });
 });
+
+function submitLead(btn) {
+  const fields = document.getElementById('lf-fields');
+  const inputs = fields.querySelectorAll('input');
+  // Basic validation — all inputs must have a value
+  let valid = true;
+  inputs.forEach(inp => {
+    if (!inp.value.trim()) {
+      inp.style.borderColor = 'rgba(220,38,38,.6)';
+      valid = false;
+    } else {
+      inp.style.borderColor = '';
+    }
+  });
+  if (!valid) return;
+
+  // Fire Meta Pixel Lead event
+  if (typeof fbq !== 'undefined') {
+    fbq('track', 'Lead', {
+      content_name: 'Fixed Income Rate Comparison',
+      content_category: 'Finance',
+      currency: 'GBP',
+    });
+  }
+
+  // Hide form, show thank you
+  fields.style.display = 'none';
+  btn.style.display = 'none';
+  document.getElementById('lf-success').style.display = 'block';
+}
 </script>
 </body>
 </html>
