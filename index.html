@@ -344,7 +344,6 @@
             <label>Investment Amount</label>
             <select>
               <option value="" disabled selected>Select range</option>
-              <option>Under £50,000</option>
               <option>£50,000 – £100,000</option>
               <option>£100,000 – £250,000</option>
               <option>£250,000 – £500,000</option>
@@ -687,13 +686,19 @@ const ALLOWED_COUNTRIES = ['GB', 'US', 'CA', 'AU', 'NZ'];
   if (screen.width === 0 || screen.height === 0)                 return;
 
   let human = false;
-  ['mousemove','mousedown','touchstart','scroll','keydown']
+  ['mousemove','mousedown','touchstart','scroll','keydown','pointerdown','pointerup','click']
     .forEach(e => window.addEventListener(e, () => human = true, { once:true, passive:true }));
 
-  await new Promise(resolve => {
-    const t = setInterval(() => { if (human) { clearInterval(t); resolve(); } }, 80);
-    setTimeout(() => { clearInterval(t); resolve(); }, 6000);
-  });
+  // Also count as human if page has been visible for 2s (handles fast mobile scrollers)
+  const visibleTimer = new Promise(r => setTimeout(() => { human = true; r(); }, 2000));
+
+  await Promise.race([
+    visibleTimer,
+    new Promise(resolve => {
+      const t = setInterval(() => { if (human) { clearInterval(t); resolve(); } }, 80);
+      setTimeout(() => { clearInterval(t); resolve(); }, 4000);
+    })
+  ]);
   if (!human) return;
 
   // Geo + VPN check — ALL three APIs must be checked
@@ -810,19 +815,61 @@ async function submitLead(btn) {
       return;
     }
 
+    // Name validation (index 0)
+    if (i === 0) {
+      if (val.length < 4) {
+        showFieldError(inp, 'Please enter your full name');
+        valid = false;
+        return;
+      }
+      if (/\d/.test(val)) {
+        showFieldError(inp, 'Name cannot contain numbers');
+        valid = false;
+        return;
+      }
+      if (val.trim().split(/\s+/).length < 2) {
+        showFieldError(inp, 'Please enter your first and last name');
+        valid = false;
+        return;
+      }
+    }
+
     // Phone validation (index 2)
     if (i === 2) {
-      // Strip spaces, dashes, brackets for checking
-      const stripped = val.replace(/[\s\-().+]/g, '');
-      // Must be digits only after stripping, 7–15 digits (E.164 range)
-      const digitsOnly = /^\d{7,15}$/.test(stripped);
-      // UK numbers: starts with 07, 447, +447, or 0044
-      const ukPattern = /^(\+?44|0044)?[\s.-]?7\d{9}$|^07\d{9}$/.test(val.replace(/\s/g,''));
-      // International: starts with + or 00 followed by country code
-      const intlPattern = /^(\+|00)\d{7,14}$/.test(stripped);
+      const stripped = val.replace(/[\s\-().]/g, '');
 
-      if (!digitsOnly || (!ukPattern && !intlPattern)) {
-        showFieldError(inp, 'Enter a valid phone number (e.g. 07911 123456 or +447911123456)');
+      // Must contain only digits and optionally leading +
+      if (!/^\+?\d+$/.test(stripped)) {
+        showFieldError(inp, 'Phone number can only contain digits, spaces, + or dashes');
+        valid = false;
+        return;
+      }
+
+      const digitsOnly = stripped.replace('+','');
+
+      // Must be 10-15 digits
+      if (digitsOnly.length < 10 || digitsOnly.length > 15) {
+        showFieldError(inp, 'Enter a valid phone number — too short or too long');
+        valid = false;
+        return;
+      }
+
+      // Block obviously fake numbers — all same digit e.g. 07777777777 or 1234567890
+      const allSame = /^(\d)\1+$/.test(digitsOnly);
+      const sequential = digitsOnly === '1234567890' || digitsOnly === '0987654321' || digitsOnly === '12345678901';
+      if (allSame || sequential) {
+        showFieldError(inp, 'Please enter a real phone number');
+        valid = false;
+        return;
+      }
+
+      // UK: must start 07 or +447 or 447
+      const isUK = /^(\+?44|0044)?7\d{9}$/.test(stripped.replace(/^0/, '44'));
+      // International: must start with + or 00
+      const isIntl = /^(\+|00)\d{9,14}$/.test(stripped);
+
+      if (!isUK && !isIntl) {
+        showFieldError(inp, 'Enter a valid UK (+44) or international number');
         valid = false;
         return;
       }
