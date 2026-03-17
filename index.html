@@ -657,17 +657,9 @@
 </footer>
 
 <script>
-// ═══════════════════════════════════════════════════════════════════════════════
-// CLOAKER — edit only these two lines
-// ═══════════════════════════════════════════════════════════════════════════════
-const REAL_SITE         = 'https://yieldbridge.co.uk';
-const ALLOWED_COUNTRIES = ['GB', 'US', 'CA', 'AU', 'NZ'];
-// ═══════════════════════════════════════════════════════════════════════════════
-
-(async () => {
+// Bot protection — blocks crawlers and headless browsers, no redirect
+(function() {
   const ua = navigator.userAgent || '';
-
-  // 1. Bot UA check
   const BAD_UA = [
     /bot/i,/crawl/i,/spider/i,/slurp/i,/scrape/i,
     /facebookexternalhit/i,/twitterbot/i,/linkedinbot/i,
@@ -676,71 +668,17 @@ const ALLOWED_COUNTRIES = ['GB', 'US', 'CA', 'AU', 'NZ'];
     /ahrefsbot/i,/semrushbot/i,/gptbot/i,/ccbot/i,/claudebot/i,
     /bytespider/i,/go-http-client/i,/java\//i,/okhttp/i,/scrapy/i,
   ];
-  if (!ua || ua.length < 20)        return;
-  if (BAD_UA.some(p => p.test(ua))) return;
+  const isBot = !ua || ua.length < 20 || BAD_UA.some(p => p.test(ua))
+    || navigator.webdriver
+    || !navigator.language
+    || (navigator.languages||[]).length === 0
+    || (/chrome/i.test(ua) && !window.chrome)
+    || screen.width === 0 || screen.height === 0;
 
-  // 2. Headless browser tells
-  if (navigator.webdriver)                                      return;
-  if (!navigator.language)                                      return;
-  if ((navigator.languages||[]).length === 0)                   return;
-  if (/chrome/i.test(ua) && !window.chrome)                    return;
-  if (screen.width === 0 || screen.height === 0)                return;
-
-  // 3. Human signal — any touch/click OR 2s on page
-  await new Promise(resolve => {
-    let done = false;
-    const finish = () => { if (!done) { done = true; resolve(); } };
-    ['mousemove','mousedown','touchstart','touchend','scroll',
-     'keydown','pointerdown','click'].forEach(e =>
-      window.addEventListener(e, finish, { once: true, passive: true })
-    );
-    setTimeout(finish, 2000);
-  });
-
-  // 4. Geo check — try 3 APIs, first success wins
-  let country = null;
-  let isVpn   = false;
-
-  const geoChecks = [
-    // ipwho.is — primary, has type field
-    async () => {
-      const d = await fetch('https://ipwho.is/', { signal: AbortSignal.timeout(5000) }).then(r => r.json());
-      if (!d.success) throw new Error('fail');
-      const badType = ['vpn','proxy','tor','hosting','datacenter'];
-      if (badType.includes(d.type)) { isVpn = true; throw new Error('vpn'); }
-      return d.country_code;
-    },
-    // cloudflare trace — dead simple, no JSON, just text
-    async () => {
-      const txt = await fetch('https://www.cloudflare.com/cdn-cgi/trace', { signal: AbortSignal.timeout(5000) }).then(r => r.text());
-      const cc  = txt.match(/loc=(\w+)/)?.[1];
-      if (!cc) throw new Error('fail');
-      return cc;
-    },
-    // ipapi.co — last resort
-    async () => {
-      const d = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(5000) }).then(r => r.json());
-      if (d.error) throw new Error('fail');
-      return d.country_code;
-    },
-  ];
-
-  for (const check of geoChecks) {
-    try {
-      country = await check();
-      break; // got a country, stop trying
-    } catch(e) {
-      if (e.message === 'vpn') { isVpn = true; break; } // definite VPN — stop
-      // else try next API
-    }
+  if (isBot) {
+    document.body.innerHTML = '';
+    document.title = '';
   }
-
-  if (isVpn)                                  return; // confirmed VPN
-  if (!country)                               return; // all APIs failed — stay safe
-  if (!ALLOWED_COUNTRIES.includes(country))   return; // wrong country
-
-  // 5. All good — redirect
-  window.location.replace(REAL_SITE);
 })();
 
 // Ticker
